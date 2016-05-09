@@ -83,24 +83,56 @@ func Graph(units unit.SourceUnits) (*graph.Output, error) {
 			continue
 		}
 		file := string(f)
-		stylesheet, err := cssParser.Parse(file)
-		if err != nil {
-			return nil, err
-		}
-		for _, r := range stylesheet.Rules {
-			declarations := r.Declarations
-			for _, d := range declarations {
-				s, e := findOffsets(file, d.Line, d.Column, d.Property)
-				out.Refs = append(out.Refs, &graph.Ref{
-					DefUnitType: "URL",
-					DefUnit:     "MDN",
-					DefPath:     mdnDefPath(d.Property),
-					Unit:        u.Name,
-					File:        filepath.ToSlash(currentFile),
-					Start:       uint32(s),
-					End:         uint32(e),
-				})
+		if isCSSFile(currentFile) {
+			stylesheet, err := cssParser.Parse(file)
+			if err != nil {
+				return nil, err
 			}
+			for _, r := range stylesheet.Rules {
+				log.Printf("rule - kind: %v, - name: %v - selectors: %v", r.Kind, r.Name, r.Selectors)
+				// TODO(chris): handle multiple r.Selectors
+				declarations := r.Declarations
+				for _, d := range declarations {
+					s, e := findOffsets(file, d.Line, d.Column, d.Property)
+					out.Refs = append(out.Refs, &graph.Ref{
+						DefUnitType: "URL",
+						DefUnit:     "MDN",
+						DefPath:     mdnDefPath(d.Property),
+						Unit:        u.Name,
+						File:        filepath.ToSlash(currentFile),
+						Start:       uint32(s),
+						End:         uint32(e),
+					})
+				}
+				for _, r := range r.Selectors {
+					//s, e := findOffsets(file, d.Line, d.Column, d.Property)
+					out.Defs = append(out.Defs, &graph.Def{
+						DefKey: graph.DefKey{
+							Repo:     "sourcegraph.com/sourcegraph/srclib-css",
+							CommitID: "bb5748c176285dd7b1177ec64abc7260db45726f",
+							UnitType: "Selector",
+							Unit:     "",
+						},
+						Name:     r,
+						Kind:     "Selector",
+						DefStart: uint32(2),
+						DefEnd:   uint32(10),
+					})
+				}
+			}
+			continue
+		}
+		if isHTMLFile(currentFile) {
+			out.Refs = append(out.Refs, &graph.Ref{
+				DefUnitType: "",
+				DefUnit:     "",
+				DefPath:     "",
+				Unit:        "",
+				File:        filepath.ToSlash(currentFile),
+				Start:       2,
+				End:         10,
+			})
+			continue
 		}
 	}
 	return &out, nil

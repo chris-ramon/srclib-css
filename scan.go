@@ -69,7 +69,7 @@ func (c *ScanCmd) Execute(args []string) error {
 		if f.IsDir() {
 			return nil
 		}
-		if isCSSFile(path) {
+		if isCSSFile(path) || isHTMLFile(path) {
 			rp, err := filepath.Rel(CWD, path)
 			if err != nil {
 				return err
@@ -93,4 +93,8 @@ func (c *ScanCmd) Execute(args []string) error {
 
 func isCSSFile(filename string) bool {
 	return filepath.Ext(filename) == ".css" && !strings.HasSuffix(filename, ".min.css")
+}
+
+func isHTMLFile(filename string) bool {
+	return filepath.Ext(filename) == ".html" && !strings.HasSuffix(filename, ".min.html")
 }
